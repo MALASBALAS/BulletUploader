@@ -57,7 +57,8 @@ class BulletUploader:
         self.entry_commit = tk.Entry(frame, width=50)
         self.entry_commit.grid(row=6, column=1, sticky="w")
 
-        tk.Button(frame, text="🚀 Subir y Crear PR", command=self.deploy).grid(row=7, column=1, pady=10)
+        tk.Button(frame, text="🚀 Subir y Crear PR", command=self.deploy).grid(row=7, column=1, pady=5)
+        tk.Button(frame, text="📤 Hacer Push Manual", command=self.push_current_branch).grid(row=8, column=1, pady=5)
 
         self.log = ScrolledText(self.root, height=10)
         self.log.pack(padx=10, pady=5, fill="both", expand=True)
@@ -111,6 +112,9 @@ class BulletUploader:
             self.log.insert(tk.END, "✅ Commit inicial creado\n")
 
     def deploy(self):
+        def remote_exists():
+            result = subprocess.run(["git", "remote"], cwd=path, capture_output=True, text=True)
+            return "origin" in result.stdout
         path = self.entry_path.get()
         if not check_for_secrets(path):
             messagebox.showerror("Seguridad", "Secretos encontrados en el proyecto")
@@ -124,17 +128,36 @@ class BulletUploader:
 
         self.ensure_git_initialized(path)
 
+        if not remote_exists():
+            repo_url = f"https://github.com/{self.repo_name}.git"
+            subprocess.run(["git", "remote", "add", "origin", repo_url], cwd=path, check=True)
+            self.log.insert(tk.END, f"✅ Remote agregado: {repo_url}\n")
+
         git = GitManager()
 
         try:
-            git.create_branch(rama)
+            try:
+                subprocess.run(["git", "checkout", rama], cwd=path, check=True)
+                self.log.insert(tk.END, f"🔁 Rama existente detectada, cambiando a: {rama}\n")
+            except subprocess.CalledProcessError:
+                git.create_branch(rama)
+                self.log.insert(tk.END, f"🌱 Rama creada: {rama}\n")
             git.add_all_changes()
             git.commit(mensaje)
             git.push(rama)
             self.gh.create_pr(self.repo_name, rama, mensaje, f"Auto PR desde BulletUploader GUI")
+            subprocess.run(["gh", "pr", "view", "--web"], cwd=path)
             self.log.insert(tk.END, "✅ PR creado correctamente\n")
         except Exception as e:
             self.log.insert(tk.END, f"❌ Error: {str(e)}\n")
+
+    def push_current_branch(self):
+        path = self.entry_path.get()
+        try:
+            subprocess.run(["git", "push"], cwd=path, check=True)
+            self.log.insert(tk.END, "✅ Push realizado con éxito\n")
+        except subprocess.CalledProcessError as e:
+            self.log.insert(tk.END, f"❌ Error al hacer push: {e}\n")
 
 if __name__ == "__main__":
     root = tk.Tk()
