@@ -1,0 +1,5 @@
+tk
+pytest
+requests
+pygithub
+rich
