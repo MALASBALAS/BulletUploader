@@ -60,54 +60,64 @@ class BulletUploader:
         self.entry_path = tk.Entry(frame, width=50, bg="#172A45", fg=JARVIS_TEXT, insertbackground=JARVIS_TEXT, font=FONT)
         self.entry_path.grid(row=0, column=1, padx=5)
         tk.Button(frame, text="📁", command=self.browse_folder, bg=JARVIS_ACCENT, fg=JARVIS_BG, font=FONT_BOLD, activebackground=JARVIS_ACCENT2).grid(row=0, column=2)
+        tk.Label(frame, text="Selecciona la carpeta de tu proyecto", bg=JARVIS_PANEL, fg=JARVIS_TEXT2, font=("Segoe UI", 9)).grid(row=1, column=1, sticky="w")
 
         # Tipo de Proyecto
-        tk.Label(frame, text="Tipo de Proyecto:", bg=JARVIS_PANEL, fg=JARVIS_ACCENT, font=FONT_BOLD).grid(row=1, column=0, sticky="w")
+        tk.Label(frame, text="Tipo de Proyecto:", bg=JARVIS_PANEL, fg=JARVIS_ACCENT, font=FONT_BOLD).grid(row=2, column=0, sticky="w")
         self.label_project = tk.Label(frame, text="Desconocido", fg=JARVIS_ACCENT2, bg=JARVIS_PANEL, font=FONT_BOLD)
-        self.label_project.grid(row=1, column=1, sticky="w")
-        tk.Button(frame, text="Detectar y Testear", command=self.detect_and_test, bg=JARVIS_ACCENT2, fg=JARVIS_BG, font=FONT_BOLD, activebackground=JARVIS_ACCENT).grid(row=1, column=2, pady=2)
+        self.label_project.grid(row=2, column=1, sticky="w")
+        tk.Button(frame, text="Detectar y Testear", command=self.detect_and_test, bg=JARVIS_ACCENT2, fg=JARVIS_BG, font=FONT_BOLD, activebackground=JARVIS_ACCENT).grid(row=2, column=2, pady=2)
 
         # Repositorio GitHub
-        tk.Label(frame, text="Repositorio GitHub:", bg=JARVIS_PANEL, fg=JARVIS_ACCENT, font=FONT_BOLD).grid(row=2, column=0, sticky="w")
+        tk.Label(frame, text="Repositorio GitHub:", bg=JARVIS_PANEL, fg=JARVIS_ACCENT, font=FONT_BOLD).grid(row=3, column=0, sticky="w")
         self.repo_menu = tk.OptionMenu(frame, self.repo_var, "")
         self.repo_menu.config(bg="#172A45", fg=JARVIS_TEXT, font=FONT, highlightthickness=0, bd=0, activebackground=JARVIS_ACCENT2)
         self.repo_menu["menu"].config(bg="#172A45", fg=JARVIS_TEXT, font=FONT)
-        self.repo_menu.grid(row=2, column=1, sticky="w")
-        tk.Button(frame, text="Cargar Repos", command=self.load_repos, bg=JARVIS_ACCENT, fg=JARVIS_BG, font=FONT_BOLD, activebackground=JARVIS_ACCENT2).grid(row=2, column=2)
+        self.repo_menu.grid(row=3, column=1, sticky="w")
+        tk.Button(frame, text="Cargar Repos", command=self.load_repos, bg=JARVIS_ACCENT, fg=JARVIS_BG, font=FONT_BOLD, activebackground=JARVIS_ACCENT2).grid(row=3, column=2)
 
         # Tipo de Rama
-        tk.Label(frame, text="Tipo de Rama:", bg=JARVIS_PANEL, fg=JARVIS_ACCENT, font=FONT_BOLD).grid(row=3, column=0, sticky="w")
+        tk.Label(frame, text="Tipo de Rama:", bg=JARVIS_PANEL, fg=JARVIS_ACCENT, font=FONT_BOLD).grid(row=4, column=0, sticky="w")
         branch_menu = tk.OptionMenu(frame, self.branch_type, "feature", "bugfix", "hotfix", "update")
         branch_menu.config(bg="#172A45", fg=JARVIS_TEXT, font=FONT, highlightthickness=0, bd=0, activebackground=JARVIS_ACCENT2)
         branch_menu["menu"].config(bg="#172A45", fg=JARVIS_TEXT, font=FONT)
-        branch_menu.grid(row=3, column=1, sticky="w")
+        branch_menu.grid(row=4, column=1, sticky="w")
+        tk.Label(frame, text="Selecciona el tipo de trabajo. Ejemplo: feature (nueva funcionalidad)", bg=JARVIS_PANEL, fg=JARVIS_TEXT2, font=("Segoe UI", 9)).grid(row=5, column=1, sticky="w")
 
         # Nombre de la Rama
-        tk.Label(frame, text="Nombre de la Rama:", bg=JARVIS_PANEL, fg=JARVIS_ACCENT, font=FONT_BOLD).grid(row=4, column=0, sticky="w")
+        tk.Label(frame, text="Nombre de la Rama:", bg=JARVIS_PANEL, fg=JARVIS_ACCENT, font=FONT_BOLD).grid(row=6, column=0, sticky="w")
         self.entry_branch_name = tk.Entry(frame, width=30, bg="#172A45", fg=JARVIS_TEXT, insertbackground=JARVIS_TEXT, font=FONT)
-        self.entry_branch_name.grid(row=4, column=1, sticky="w")
+        self.entry_branch_name.grid(row=6, column=1, sticky="w")
+        tk.Label(frame, text="Describe brevemente (sin espacios). Ejemplo: loginwindow (puedes dejarlo vacío)", bg=JARVIS_PANEL, fg=JARVIS_TEXT2, font=("Segoe UI", 9)).grid(row=7, column=1, sticky="w")
 
         # Tipo Commit
-        tk.Label(frame, text="Tipo Commit:", bg=JARVIS_PANEL, fg=JARVIS_ACCENT, font=FONT_BOLD).grid(row=5, column=0, sticky="w")
+        tk.Label(frame, text="Tipo Commit:", bg=JARVIS_PANEL, fg=JARVIS_ACCENT, font=FONT_BOLD).grid(row=8, column=0, sticky="w")
         commit_menu = tk.OptionMenu(frame, self.commit_category, "feat", "fix", "refactor", "chore", "test")
         commit_menu.config(bg="#172A45", fg=JARVIS_TEXT, font=FONT, highlightthickness=0, bd=0, activebackground=JARVIS_ACCENT2)
         commit_menu["menu"].config(bg="#172A45", fg=JARVIS_TEXT, font=FONT)
-        commit_menu.grid(row=5, column=1, sticky="w")
+        commit_menu.grid(row=8, column=1, sticky="w")
+        tk.Label(frame, text="Tipo de cambio. Ejemplo: feat (funcionalidad), fix, chore...", bg=JARVIS_PANEL, fg=JARVIS_TEXT2, font=("Segoe UI", 9)).grid(row=9, column=1, sticky="w")
 
         # ID Referencia
-        tk.Label(frame, text="ID Referencia:", bg=JARVIS_PANEL, fg=JARVIS_ACCENT, font=FONT_BOLD).grid(row=6, column=0, sticky="w")
-        tk.Entry(frame, textvariable=self.commit_ref, width=30, bg="#172A45", fg=JARVIS_TEXT, insertbackground=JARVIS_TEXT, font=FONT).grid(row=6, column=1, sticky="w")
+        tk.Label(frame, text="ID Referencia:", bg=JARVIS_PANEL, fg=JARVIS_ACCENT, font=FONT_BOLD).grid(row=10, column=0, sticky="w")
+        entry_ref = tk.Entry(frame, textvariable=self.commit_ref, width=30, bg="#172A45", fg=JARVIS_TEXT, insertbackground=JARVIS_TEXT, font=FONT)
+        entry_ref.grid(row=10, column=1, sticky="w")
+        tk.Label(frame, text="ID del ticket o referencia. Ejemplo: FB-001", bg=JARVIS_PANEL, fg=JARVIS_TEXT2, font=("Segoe UI", 9)).grid(row=11, column=1, sticky="w")
 
         # Descripción rama
-        tk.Label(frame, text="Descripción rama:", bg=JARVIS_PANEL, fg=JARVIS_ACCENT, font=FONT_BOLD).grid(row=7, column=0, sticky="w")
-        tk.Entry(frame, textvariable=self.commit_desc, width=30, bg="#172A45", fg=JARVIS_TEXT, insertbackground=JARVIS_TEXT, font=FONT).grid(row=7, column=1, sticky="w")
+        tk.Label(frame, text="Descripción rama:", bg=JARVIS_PANEL, fg=JARVIS_ACCENT, font=FONT_BOLD).grid(row=12, column=0, sticky="w")
+        entry_desc = tk.Entry(frame, textvariable=self.commit_desc, width=30, bg="#172A45", fg=JARVIS_TEXT, insertbackground=JARVIS_TEXT, font=FONT)
+        entry_desc.grid(row=12, column=1, sticky="w")
+        tk.Label(frame, text="Descripción en kebab-case. Ejemplo: añadir-ventana-login", bg=JARVIS_PANEL, fg=JARVIS_TEXT2, font=("Segoe UI", 9)).grid(row=13, column=1, sticky="w")
 
         # Mensaje Commit
-        tk.Label(frame, text="Mensaje Commit:", bg=JARVIS_PANEL, fg=JARVIS_ACCENT, font=FONT_BOLD).grid(row=8, column=0, sticky="w")
-        tk.Entry(frame, textvariable=self.commit_message, width=50, bg="#172A45", fg=JARVIS_TEXT, insertbackground=JARVIS_TEXT, font=FONT).grid(row=8, column=1, sticky="w")
+        tk.Label(frame, text="Mensaje Commit:", bg=JARVIS_PANEL, fg=JARVIS_ACCENT, font=FONT_BOLD).grid(row=14, column=0, sticky="w")
+        entry_msg = tk.Entry(frame, textvariable=self.commit_message, width=50, bg="#172A45", fg=JARVIS_TEXT, insertbackground=JARVIS_TEXT, font=FONT)
+        entry_msg.grid(row=14, column=1, sticky="w")
+        tk.Label(frame, text="Descripción clara del cambio. Ejemplo: Add login window with validation", bg=JARVIS_PANEL, fg=JARVIS_TEXT2, font=("Segoe UI", 9)).grid(row=15, column=1, sticky="w")
 
         # Añadir al changelog
-        tk.Checkbutton(frame, text="➕ Añadir al changelog", variable=self.add_to_changelog, bg=JARVIS_PANEL, fg=JARVIS_ACCENT2, font=FONT).grid(row=9, column=1, sticky="w")
+        tk.Checkbutton(frame, text="➕ Añadir al changelog", variable=self.add_to_changelog, bg=JARVIS_PANEL, fg=JARVIS_ACCENT2, font=FONT).grid(row=16, column=1, sticky="w")
         tk.Checkbutton(
             frame,
             text="Eliminar carpetas indeseadas (.git, __pycache__, etc.)",
@@ -115,7 +125,7 @@ class BulletUploader:
             bg=JARVIS_PANEL,
             fg=JARVIS_ACCENT2,
             font=FONT
-        ).grid(row=10, column=1, sticky="w")
+        ).grid(row=17, column=1, sticky="w")
 
         # --- Botones de acción ---
         action_frame = tk.Frame(self.root, bg=JARVIS_BG)
@@ -234,6 +244,10 @@ class BulletUploader:
             if self.add_to_changelog.get():
                 try:
                     changelog_path = os.path.join(self.path, "CHANGELOG.md")
+                    if not os.path.exists(changelog_path):
+                        with open(changelog_path, "w", encoding="utf-8") as f:
+                            f.write("# Changelog\n\n")
+
                     with open(changelog_path, "a", encoding="utf-8") as changelog:
                         changelog.write(f"\n### {referencia} - {mensaje_final}\n- {mensaje}\n")
                     self.log.insert(tk.END, "📝 Añadido al changelog\n")
