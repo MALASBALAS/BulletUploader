@@ -5,10 +5,16 @@ import os
 import shutil
 
 SECRET_PATTERNS = [
-    re.compile(r"AKIA[0-9A-Z]{16}"),  # AWS
-    re.compile(r"AIza[0-9A-Za-z-_]{35}"),  # Google
-    re.compile(r"ghp_[0-9A-Za-z]{36}"),  # GitHub token
-    re.compile(r"(?i)(password|secret|api[_-]?key)[\"']?\s*[:=]\s*[\"']?[A-Za-z0-9\-_]{8,}"),
+    re.compile(r"AKIA[0-9A-Z]{16}"),  # AWS Access Key
+    re.compile(r"AIza[0-9A-Za-z-_]{35}"),  # Google API Key
+    re.compile(r"ghp_[0-9A-Za-z]{36}"),  # GitHub Personal Access Token
+    re.compile(r"gho_[0-9A-Za-z]{36}"),  # GitHub OAuth Token
+    re.compile(r"ghu_[0-9A-Za-z]{36}"),  # GitHub User Token
+    re.compile(r"ghs_[0-9A-Za-z]{36}"),  # GitHub Server Token
+    re.compile(r"glpat-[0-9A-Za-z\-_]{20}"),  # GitLab Personal Access Token
+    re.compile(r"sk-[0-9A-Za-z]{48}"),  # OpenAI API Key
+    # More specific pattern for passwords/secrets (exclude React constants)
+    re.compile(r"(?i)(?!SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED)(password|secret|api[_-]?key)[\"']?\s*[:=]\s*[\"']?[A-Za-z0-9\-_]{8,}"),
 ]
 
 FOLDERS_TO_REMOVE = [
@@ -16,7 +22,21 @@ FOLDERS_TO_REMOVE = [
     ".git",
     ".vscode",
     ".idea",
-    "__pycache__"
+    "__pycache__",
+    "node_modules"  # Add node_modules to folders to remove
+]
+
+EXCLUDED_PATTERNS = [
+    "SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED",  # React PropTypes constant
+    "ReactPropTypesSecret",  # React internal constant
+]
+
+EXCLUDED_DIRECTORIES = [
+    "node_modules",
+    ".vite",
+    "dist",
+    "build",
+    ".next"
 ]
 
 def clean_root_folders(path):
@@ -40,13 +60,23 @@ def check_for_secrets(path, clean_folders=True):
     """
     if clean_folders:
         clean_root_folders(path)
+    
     for root, _, files in os.walk(path):
+        # Skip excluded directories
+        if any(excluded_dir in root for excluded_dir in EXCLUDED_DIRECTORIES):
+            continue
+            
         for file in files:
             if file.endswith(('.py', '.js', '.ts', '.env', '.json', '.yml')):
                 file_path = os.path.join(root, file)
                 try:
                     with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                         content = f.read()
+                        
+                        # Check if content contains excluded patterns
+                        if any(excluded in content for excluded in EXCLUDED_PATTERNS):
+                            continue
+                            
                         for pattern in SECRET_PATTERNS:
                             if pattern.search(content):
                                 print(f"🔐 Posible secreto encontrado en {file_path}")
