@@ -35,8 +35,10 @@ def main():
 
     # Paso 3: Verificar secretos
     if not check_for_secrets(path):
-        console.print("[bold red]❌ Secretos detectados. Revisa antes de subir.[/bold red]")
-        sys.exit(1)
+        console.print("[bold red]\n❌ Se detectaron posibles secretos.[/bold red]")
+        if not Confirm.ask("¿Continuar de todas formas? (solo si estás seguro de que son falsos positivos)"):
+            console.print("[bold yellow]Operación cancelada por el usuario.[/bold yellow]")
+            sys.exit(1)
 
     # Paso 4: Inicializar git manager y GitHub
     git = GitManager()
