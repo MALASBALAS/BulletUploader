@@ -19,15 +19,25 @@ class GitHubClient:
         idx = int(Prompt.ask("📦 Elige el número del repo")) - 1
         return repos[idx]
 
-    def create_pr(self, repo, branch, title, body):
-        subprocess.run([
+    def _get_default_branch(self, repo: str) -> str | None:
+        try:
+            res = subprocess.run(["gh", "repo", "view", repo, "--json", "defaultBranchRef", "-q", ".defaultBranchRef.name"], capture_output=True, text=True, check=True)
+            return (res.stdout or "").strip() or None
+        except Exception:
+            return None
+
+    def create_pr(self, repo, branch, title, body, base: str | None = None):
+        # Resolve base to repo default branch if not provided
+        base_branch = base or self._get_default_branch(repo) or "main"
+        args = [
             "gh", "pr", "create",
             "--repo", repo,
             "--head", branch,
-            "--base", "main",
+            "--base", base_branch,
             "--title", title,
             "--body", body
-        ], check=True)
+        ]
+        subprocess.run(args, check=True)
 
     def list_repos(self):
         # Usar gh CLI (requiere gh auth login)

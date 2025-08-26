@@ -474,9 +474,13 @@ class BulletUploader:
             git.add_all_changes()
             git.commit(mensaje)
             git.push(rama)
-            self.gh.create_pr(self.repo_name, rama, f"{referencia}: {mensaje_final}", f"issue: link-to-jira{mensaje}\n")
-            subprocess.run(["gh", "pr", "view", "--repo", self.repo_name, "--web"])
-            self.log.insert(tk.END, "✅ PR creado correctamente\n")
+            try:
+                self.gh.create_pr(self.repo_name, rama, f"{referencia}: {mensaje_final}", f"issue: link-to-jira{mensaje}\n")
+                subprocess.run(["gh", "pr", "view", "--repo", self.repo_name, "--web"])
+                self.log.insert(tk.END, "✅ PR creado correctamente\n")
+            except subprocess.CalledProcessError as e:
+                # Mensaje más claro cuando no hay diferencia o base inválida
+                self.log.insert(tk.END, f"❌ No se pudo crear el PR: {e}. Verifica que la rama base exista y que haya commits distintos entre '{rama}' y la base.\n")
             
             if self.add_to_changelog.get():
                 try:
