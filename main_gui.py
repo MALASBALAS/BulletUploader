@@ -502,11 +502,46 @@ class BulletUploader:
 
     def push_current_branch(self):
         path = self.entry_path.get()
+        if not os.path.isdir(path):
+            messagebox.showerror("Error", "Ruta no válida")
+            return
         try:
-            subprocess.run(["git", "push"], cwd=path, check=True)
+            # Detectar rama actual
+            res_branch = subprocess.run(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                cwd=path, capture_output=True, text=True, check=True
+            )
+            branch = (res_branch.stdout or "").strip()
+            if not branch or branch == "HEAD":
+                self.log.insert(tk.END, "❌ No se pudo determinar la rama actual.\n")
+                return
+
+            # Comprobar si existe remote origin
+            res_remotes = subprocess.run(["git", "remote"], cwd=path, capture_output=True, text=True, check=True)
+            remotes = (res_remotes.stdout or "").split()
+            if "origin" not in remotes:
+                self.log.insert(tk.END, "❌ No existe remote 'origin'. Configúralo antes de hacer push.\n")
+                return
+
+            # ¿Tiene upstream?
+            has_upstream = True
+            try:
+                subprocess.run(["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], cwd=path, capture_output=True, text=True, check=True)
+            except subprocess.CalledProcessError:
+                has_upstream = False
+
+            if not has_upstream:
+                # Primera subida de la rama actual
+                self.log.insert(tk.END, f"⬆️  Creando upstream y haciendo push: origin/{branch}\n")
+                subprocess.run(["git", "push", "-u", "origin", branch], cwd=path, check=True)
+            else:
+                subprocess.run(["git", "push"], cwd=path, check=True)
+
             self.log.insert(tk.END, "✅ Push realizado con éxito\n")
         except subprocess.CalledProcessError as e:
+            # Mensaje amigable para upstream ausente u otros errores
             self.log.insert(tk.END, f"❌ Error al hacer push: {e}\n")
+            self.log.insert(tk.END, "ℹ️ Si es la primera vez en esta rama, usa 'Hacer Push Manual' de nuevo para crear el upstream.\n")
 
     def initial_upload(self):
         """Subida inicial con comprobaciones, conteo de archivos y progreso por porcentaje."""
