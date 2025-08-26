@@ -319,7 +319,7 @@ class BulletUploader:
             if current:
                 self.log.insert(tk.END, f"ℹ️ No se encontraron repos visibles para {current} o no hay permisos.\n")
             else:
-                self.log.insert(tk.END, "ℹ️ No se pudieron cargar repos. Asegúrate de tener 'gh' instalado y autenticado.\n")
+                self.log.insert(tk.END, "ℹ️ No se pudieron cargar repos porque no hay sesión activa. Pulsa 'Iniciar sesión' y elige tu cuenta.\n")
 
     # Eliminado: gestión de cuentas por PAT; se usa gh auth login
 
@@ -423,6 +423,15 @@ class BulletUploader:
         if not os.path.isdir(path):
             messagebox.showerror("Error", "Ruta no válida")
             return
+        # Asegurar que la cuenta seleccionada esté activa en gh para PRs correctos
+        try:
+            sel = self.account_var.get()
+            if sel:
+                username = self.account_mgr.get_username(sel)
+                if username:
+                    self.gh.ensure_login_for_user(username)
+        except Exception:
+            pass
             
         if not check_for_secrets(path, clean_folders=self.clean_folders.get()):
             messagebox.showerror("Seguridad", "Secretos encontrados en el proyecto")
