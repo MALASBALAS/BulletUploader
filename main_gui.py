@@ -319,7 +319,7 @@ class BulletUploader:
             if current:
                 self.log.insert(tk.END, f"ℹ️ No se encontraron repos visibles para {current} o no hay permisos.\n")
             else:
-                self.log.insert(tk.END, "ℹ️ No se pudieron cargar repos. Asegúrate de tener 'gh' instalado y autenticado.\n")
+                self.log.insert(tk.END, "ℹ️ No se pudieron cargar repos porque no hay sesión activa. Pulsa 'Iniciar sesión' y elige tu cuenta.\n")
 
     # Eliminado: gestión de cuentas por PAT; se usa gh auth login
 
@@ -380,6 +380,40 @@ class BulletUploader:
             self.log.insert(tk.END, f"❌ Error inesperado: {e}\n")
             return False
 
+    def _parse_owner_repo_from_url(self, url: str) -> str | None:
+        try:
+            if not url:
+                return None
+            # Examples:
+            # https://github.com/OWNER/REPO.git
+            # git@github.com:OWNER/REPO.git
+            # ssh://git@github.com/OWNER/REPO.git
+            if "github.com" not in url:
+                return None
+            # Normalize separators
+            part = url.split("github.com", 1)[1]
+            if part.startswith(":") or part.startswith("/"):
+                part = part[1:]
+            # Remove protocol residue and .git
+            part = part.replace(".git", "")
+            # The remaining should start with OWNER/REPO
+            owner_repo = part.split("/", 2)[:2]
+            if len(owner_repo) < 2:
+                return None
+            return f"{owner_repo[0]}/{owner_repo[1]}"
+        except Exception:
+            return None
+
+    def _get_origin_repo(self, path: str) -> str | None:
+        try:
+            res = subprocess.run(["git", "remote", "get-url", "origin"], cwd=path, capture_output=True, text=True)
+            if res.returncode != 0:
+                return None
+            url = (res.stdout or "").strip()
+            return self._parse_owner_repo_from_url(url)
+        except Exception:
+            return None
+
     def deploy(self):
         def remote_exists():
             result = subprocess.run(["git", "remote"], cwd=path, capture_output=True, text=True)
@@ -389,11 +423,19 @@ class BulletUploader:
         if not os.path.isdir(path):
             messagebox.showerror("Error", "Ruta no válida")
             return
+        # Asegurar que la cuenta seleccionada esté activa en gh para PRs correctos
+        try:
+            sel = self.account_var.get()
+            if sel:
+                username = self.account_mgr.get_username(sel)
+                if username:
+                    self.gh.ensure_login_for_user(username)
+        except Exception:
+            pass
             
         if not check_for_secrets(path, clean_folders=self.clean_folders.get()):
             messagebox.showerror("Seguridad", "Secretos encontrados en el proyecto")
             return
-
         tipo = self.branch_type.get()
         nombre = self.entry_branch_name.get()
         referencia = self.commit_ref.get().strip()
@@ -402,7 +444,15 @@ class BulletUploader:
         mensaje_final = self.commit_message.get().strip()
         categoria = self.commit_category.get()
         mensaje = f"{categoria}: {referencia} {mensaje_final}"
-        self.repo_name = self.repo_var.get()
+        # Determinar repo de destino: priorizar 'origin' si existe, para evitar PRs en repo equivocado
+        origin_repo = self._get_origin_repo(path)
+        selected_repo = self.repo_var.get().strip()
+        self.repo_name = origin_repo or selected_repo
+        if origin_repo and selected_repo and origin_repo != selected_repo:
+            self.log.insert(tk.END, f"ℹ️ El remote 'origin' apunta a {origin_repo}. Usaré este repo para el PR (ignorando selección '{selected_repo}').\n")
+        if not self.repo_name:
+            messagebox.showerror("Repositorio", "No se pudo determinar el repositorio destino. Configura un remote 'origin' o selecciona uno en el desplegable.")
+            return
 
         if not self.ensure_git_initialized(path):
             messagebox.showerror("Error", "No se pudo inicializar el repositorio git.")
@@ -433,9 +483,13 @@ class BulletUploader:
             git.add_all_changes()
             git.commit(mensaje)
             git.push(rama)
-            self.gh.create_pr(self.repo_name, rama, f"{referencia}: {mensaje_final}", f"issue: link-to-jira{mensaje}\n")
-            subprocess.run(["gh", "pr", "view", "--web"])
-            self.log.insert(tk.END, "✅ PR creado correctamente\n")
+            try:
+                self.gh.create_pr(self.repo_name, rama, f"{referencia}: {mensaje_final}", f"issue: link-to-jira{mensaje}\n")
+                subprocess.run(["gh", "pr", "view", "--repo", self.repo_name, "--web"])
+                self.log.insert(tk.END, "✅ PR creado correctamente\n")
+            except subprocess.CalledProcessError as e:
+                # Mensaje más claro cuando no hay diferencia o base inválida
+                self.log.insert(tk.END, f"❌ No se pudo crear el PR: {e}. Verifica que la rama base exista y que haya commits distintos entre '{rama}' y la base.\n")
             
             if self.add_to_changelog.get():
                 try:
@@ -457,11 +511,46 @@ class BulletUploader:
 
     def push_current_branch(self):
         path = self.entry_path.get()
+        if not os.path.isdir(path):
+            messagebox.showerror("Error", "Ruta no válida")
+            return
         try:
-            subprocess.run(["git", "push"], cwd=path, check=True)
+            # Detectar rama actual
+            res_branch = subprocess.run(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                cwd=path, capture_output=True, text=True, check=True
+            )
+            branch = (res_branch.stdout or "").strip()
+            if not branch or branch == "HEAD":
+                self.log.insert(tk.END, "❌ No se pudo determinar la rama actual.\n")
+                return
+
+            # Comprobar si existe remote origin
+            res_remotes = subprocess.run(["git", "remote"], cwd=path, capture_output=True, text=True, check=True)
+            remotes = (res_remotes.stdout or "").split()
+            if "origin" not in remotes:
+                self.log.insert(tk.END, "❌ No existe remote 'origin'. Configúralo antes de hacer push.\n")
+                return
+
+            # ¿Tiene upstream?
+            has_upstream = True
+            try:
+                subprocess.run(["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], cwd=path, capture_output=True, text=True, check=True)
+            except subprocess.CalledProcessError:
+                has_upstream = False
+
+            if not has_upstream:
+                # Primera subida de la rama actual
+                self.log.insert(tk.END, f"⬆️  Creando upstream y haciendo push: origin/{branch}\n")
+                subprocess.run(["git", "push", "-u", "origin", branch], cwd=path, check=True)
+            else:
+                subprocess.run(["git", "push"], cwd=path, check=True)
+
             self.log.insert(tk.END, "✅ Push realizado con éxito\n")
         except subprocess.CalledProcessError as e:
+            # Mensaje amigable para upstream ausente u otros errores
             self.log.insert(tk.END, f"❌ Error al hacer push: {e}\n")
+            self.log.insert(tk.END, "ℹ️ Si es la primera vez en esta rama, usa 'Hacer Push Manual' de nuevo para crear el upstream.\n")
 
     def initial_upload(self):
         """Subida inicial con comprobaciones, conteo de archivos y progreso por porcentaje."""
@@ -528,6 +617,12 @@ class BulletUploader:
         files = [f for f in files if not f.startswith('.git/')]
         return files
 
+    def _list_staged_files(self, path: str):
+        """List files currently staged for commit."""
+        res = self._run(["git", "diff", "--cached", "--name-only"], cwd=path, capture=True)
+        staged = [l for l in (res.stdout or "").splitlines() if l.strip()]
+        return staged
+
     def _initial_upload_task(self):
         try:
             path = self.entry_path.get().strip()
@@ -569,18 +664,23 @@ class BulletUploader:
             if total == 0:
                 # Intentar detectar cambios tras add -A (p.ej. primer commit)
                 self._run(["git", "add", "-A"], cwd=path)
-                files = self._list_files_to_commit(path)
-                total = len(files)
+                staged = self._list_staged_files(path)
+                total = len(staged)
                 self._log(f"📦 Archivos detectados tras 'git add -A': {total}\n")
                 if total == 0:
                     self._log("Nada que subir.\n")
                     return
+                # Registrar progreso sobre los ya staged (sin re-añadir)
+                for i, f in enumerate(staged, start=1):
+                    pct = (i / total) * 100
+                    self._log(f"Progreso: {pct:.1f}% ({i}/{total}) -> {f}\n")
 
             # Añadir con progreso
-            for i, f in enumerate(files, start=1):
-                self._run(["git", "add", "--", f], cwd=path)
-                pct = (i / total) * 100
-                self._log(f"Progreso: {pct:.1f}% ({i}/{total}) -> {f}\n")
+            if total > 0 and 'files' in locals() and files:
+                for i, f in enumerate(files, start=1):
+                    self._run(["git", "add", "--", f], cwd=path)
+                    pct = (i / total) * 100
+                    self._log(f"Progreso: {pct:.1f}% ({i}/{total}) -> {f}\n")
 
             # Commit si hay staged
             res = self._run(["git", "status", "--porcelain"], cwd=path, capture=True)
