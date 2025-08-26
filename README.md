@@ -24,11 +24,35 @@
 
 ### Requirements
 
-- Python 3.8 or higher
-- Git
-- GitHub CLI (`gh`)
-- `pytest` (for Python projects)
-- A valid GitHub personal token
+- Python 3.9+ (recomendado 3.11)
+- Git instalado y en PATH
+- GitHub CLI (`gh`) autenticado (opcional, recomendado)
+- Tk (Tkinter) disponible para la GUI
+	- Ubuntu: `sudo apt-get update && sudo apt-get install -y python3-tk`
+	- macOS: si usas Homebrew Python: `brew install python-tk@3.11` (ajusta versión); o usa el Python del sistema con Tk.
+
+
+## Ejecutar en macOS (Monterey 12.7.6+) y Ubuntu
+
+Requisitos del sistema:
+- Python 3.9+ (recomendado 3.11)
+- Tk (Tkinter):
+  - Ubuntu: `sudo apt-get update && sudo apt-get install -y python3-tk`
+  - macOS: si usas Homebrew Python: `brew install python-tk@3.11` (ajusta versión); o usa el Python del sistema con Tk.
+- Git instalado y en PATH
+- GitHub CLI `gh` (opcional pero recomendado) autenticado (`gh auth login`)
+
+Pasos:
+1) Da permisos de ejecución al launcher (una vez):
+	- macOS/Ubuntu: `chmod +x ./run.sh`
+2) Ejecuta:
+	- `./run.sh`
+
+El script creará/activará `.venv`, instalará dependencias de `requirements.txt` y lanzará la app.
+
+## Ejecutar en Windows
+
+Usa `run.bat` (se autoeleva y preferirá `.venv` local si existe).
 
 ### Clone and Run
 
